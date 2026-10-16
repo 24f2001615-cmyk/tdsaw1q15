@@ -210,7 +210,18 @@ def rule_answer(question: str):
     sold_rank = bool(re.search(r"best-selling|most sold|selling|\bsold\b", t)) and not re.search(r"revenue|sales|earn|spen[dt]", t)
 
     # ---- ranking questions ("which product ...", "top 3 customers ...")
-    rank_hi, rank_lo = re.search(RANK_HI, t), re.search(RANK_LO, t)
+    t_rank = re.sub(r"\bat (least|most)\b", " ", t)
+    # distinct-customer counts ("how many different customers ... at least one paid order ...")
+    if re.search(r"\b(how many|number of|count of|total)\s+(distinct |unique |different |active |paying )?customers\b", t) or \
+            re.search(r"\bcustomers?\b.*\b(distinct|unique|different)\b|\b(distinct|unique|different)\s+customers?\b", t):
+        csub = df[df["status"] == status]
+        am = re.search(r"\bat least\s+(\d+|" + "|".join(NUM_WORDS) + r")\b", t)
+        if am:
+            k = int(am.group(1)) if am.group(1).isdigit() else NUM_WORDS[am.group(1)]
+            per = csub.groupby("customer")["id"].count()
+            return int((per >= k).sum())
+        return int(csub["customer"].nunique())
+    rank_hi, rank_lo = re.search(RANK_HI, t_rank), re.search(RANK_LO, t_rank)
     dim = None
     wm = re.search(r"\b(which|what)\s+(?:\w+\s+){0,2}?(product|customer|region|month)\b", t)
     if wm:
