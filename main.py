@@ -15,7 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 BASE = Path(__file__).parent
 AIPIPE_TOKEN = os.environ.get("AIPIPE_TOKEN", "")
-MODEL = os.environ.get("MODEL", "openai/gpt-4.1")
+MODEL = os.environ.get("MODEL", "openai/gpt-4.1-mini")
 LLM_URL = "https://aipipe.org/openrouter/v1/chat/completions"
 TOTAL_BUDGET = 13.0  # seconds; grader allows 15
 
@@ -156,7 +156,7 @@ async def generate_code(question: str, timeout: float, prev_code: str = "", erro
         r = await client.post(
             LLM_URL,
             headers={"Authorization": f"Bearer {AIPIPE_TOKEN}", "Content-Type": "application/json"},
-            json={"model": MODEL, "temperature": 0, "messages": messages},
+            json={"model": MODEL, "temperature": 0, "max_tokens": 700, "messages": messages},
         )
         r.raise_for_status()
         return strip_fences(r.json()["choices"][0]["message"]["content"])
