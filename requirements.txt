@@ -1,0 +1,5 @@
+fastapi
+uvicorn
+pandas>=2.0
+numpy
+httpx
