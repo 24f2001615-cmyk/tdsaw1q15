@@ -162,6 +162,9 @@ async def generate_code(question: str, timeout: float, prev_code: str = "", erro
         return strip_fences(r.json()["choices"][0]["message"]["content"])
 
 
+LAST = {"error": None, "code": None}
+
+
 async def answer_question(question: str):
     start = time.monotonic()
     code, error = "", ""
@@ -171,10 +174,15 @@ async def answer_question(question: str):
             break
         try:
             code = await generate_code(question, remaining - 1, code, error)
+            LAST["code"] = code
             value = await asyncio.wait_for(asyncio.to_thread(run_code, code), timeout=3)
             return normalise(value)
         except Exception as e:  # feed the error back once
             error = f"{type(e).__name__}: {e}"
+            if isinstance(e, httpx.HTTPStatusError):
+                error += " | " + e.response.text[:300]
+            LAST["error"] = error
+            print("ERROR:", error, flush=True)
     return None
 
 
@@ -187,7 +195,8 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 
 @app.get("/")
 def health():
-    return {"ok": True, "orders": len(DF)}
+    return {"ok": True, "orders": len(DF), "token_set": bool(AIPIPE_TOKEN),
+            "model": MODEL, "last_error": LAST["error"], "last_code": LAST["code"]}
 
 
 @app.post("/")
